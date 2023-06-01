@@ -112,17 +112,19 @@ f0_max = 1760; % fréquence maximale pour la recherche de pitch = La 5
 
 amdf = zeros(1, f0_max-f0_min+1); %
 for j=f0_min:f0_max 
-    tau = round(j);
+    tau = round(fc/j);
 	%tau = round(nfft*j/fc); % FAIRE BELEK A TAU AVEC FC
 	amdf(j-f0_min+1) = sum(abs(spec_filtre(1:end-tau)-spec_filtre(1+tau:end)));
 end
 % Recherche de la fréquence fondamentale correspondant à la valeur minimale de la fonction AMDF
 [min_amdf, indice_min_amdf] = min(amdf);
-pitch = indice_min_amdf*nfft/fc
-f2 = nfft*247/fc:fc/nfft:fc-1+nfft*247/fc;
+pitch = f0_min+indice_min_amdf-1 
+f2 = linspace(f0_min+1,f0_max,f0_max-f0_min+1);
+figure(2);
 
-%plot(f2, amdf );
+plot(f2, amdf );
 %plot(bufferPadded);
+hold on;
 xlim([0 fc/2]);
 xlabel('Fréquence (Hz)');
 %xlabel('BufferPadded (s)');
