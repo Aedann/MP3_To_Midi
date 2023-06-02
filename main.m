@@ -63,7 +63,7 @@ frames0 = reshape(yDownsampled(1:numFrames*frameSize), frameSize, numFrames);
 % = Tableau de frames
 
 % Extraire 4 trames à partir de la startFrame-ème trame
-startFrame = 1200;
+startFrame = 300;
 bufferSize = 4; %Taille d'un tampon
 startIndice = (startFrame - 1) * frameSize + 1;
 buffer = frames0(:, startFrame:startFrame+bufferSize-1); 
@@ -77,10 +77,11 @@ bufferPadded = [buffer; zeros(length(buffer)* paddingFactor, 1)];
 % Calculer le spectre des trames avec padding
 nfft = length(bufferPadded); %Nombre de points de la FFT
 spec = fft(bufferPadded, nfft); 
-spec_filtre = spec;%.*hamming(length(spec));
+%spec_filtre = spec.*blackman(length(spec));
+spec_filtre = spec.*hamming(length(spec));
 
-%Application d'un seuil pour enlever le bruit à 0.02
-threshold = 0.05;
+%Application d'un seuil pour enlever le bruit à threshold
+threshold = 0.006;
 buffer_thresholded = spec_filtre;
 buffer_thresholded(buffer_thresholded < threshold) = threshold;
 
