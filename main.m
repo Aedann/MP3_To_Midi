@@ -30,15 +30,14 @@
 % spectre_filtre = 20*log(abs(spectre.*blackman(frameSize)));
 % 
 % plot(durationPadded,  spectre_filtre);
-% xlim([0 Fs/2]);
+% xlim([0 Fs/2]);pkf
 % xlabel('Fréquence (s)');
 % ylabel('Amplitude');
 % title(sprintf('Trame %d', frameNum));
 
 % Lire le fichier audio
-[y0, Fs] = audioread("./ficherson.mp3");
-y = y0(:,1);%Suppression de la voie de droite
-%qui comporte du bruit très faible.
+[y0, Fs] = audioread("./harry.wav");
+y = y0(:,1);%Suppression de la voie de droite qui comporte du bruit très faible.
 
 
 %Ré-échantillonage : 
@@ -63,8 +62,8 @@ numFrames = floor(length(yDownsampled) / frameSize);
 frames0 = reshape(yDownsampled(1:numFrames*frameSize), frameSize, numFrames);
 % = Tableau de frames
 
-% Extraire 4 trames à partir de la 1000e trame
-startFrame = 400;
+% Extraire 4 trames à partir de la startFrame-ème trame
+startFrame = 1200;
 bufferSize = 4; %Taille d'un tampon
 startIndice = (startFrame - 1) * frameSize + 1;
 buffer = frames0(:, startFrame:startFrame+bufferSize-1); 
@@ -78,11 +77,11 @@ bufferPadded = [buffer; zeros(length(buffer)* paddingFactor, 1)];
 % Calculer le spectre des trames avec padding
 nfft = length(bufferPadded); %Nombre de points de la FFT
 spec = fft(bufferPadded, nfft); 
-spec_filtre = spec;
+spec_filtre = spec;%.*hamming(length(spec));
 
 %Application d'un seuil pour enlever le bruit à 0.02
-threshold = 0.02;
-buffer_thresholded = spec;
+threshold = 0.05;
+buffer_thresholded = spec_filtre;
 buffer_thresholded(buffer_thresholded < threshold) = threshold;
 
 taille_buff_pad = round(length(bufferPadded)/2);
@@ -90,18 +89,6 @@ taille_buff_pad = round(length(bufferPadded)/2);
 %f = 0:length()
 bufferPaddedTrimmed = spec(length(spec)/2+1:end);
 f = 0:fc/nfft:fc-1;
-
-
-% Tracer le spectre
-figure(1);
-plot((abs(spec_filtre)));
-%plot(bufferPadded);
-hold on;
-xlim([0 fc/2]);
-xlabel('Fréquence (Hz)');
-%xlabel('BufferPadded (s)');
-ylabel('Magnitude');
-title('Spectre des 4 trames avec padding');
 
 %Partie AMDF :
 
@@ -112,19 +99,30 @@ f0_max = 1760; % fréquence maximale pour la recherche de pitch = La 5
 
 amdf = zeros(1, f0_max-f0_min+1); %
 for j=f0_min:f0_max 
-    tau = round(j);
-	%tau = round(nfft*j/fc); % FAIRE BELEK A TAU AVEC FC
-	amdf(j-f0_min+1) = sum(abs(spec_filtre(1:end-tau)-spec_filtre(1+tau:end)));
+    tau = round(j*nfft/fc);
+    f2 = 0:fc/nfft:fc-1;
+
+    s1 = abs(buffer_thresholded(1:end));
+    s2 = [ zeros(length(f2)-length(abs(buffer_thresholded(1:end-tau))), 1); abs(buffer_thresholded(1:end-tau))];
+    amdf(j-f0_min+1) = sum(abs(s1-s2));
+    j;
 end
 % Recherche de la fréquence fondamentale correspondant à la valeur minimale de la fonction AMDF
 [min_amdf, indice_min_amdf] = min(amdf);
-pitch = indice_min_amdf*nfft/fc
-f2 = nfft*247/fc:fc/nfft:fc-1+nfft*247/fc;
 
-%plot(f2, amdf );
-%plot(bufferPadded);
+pitch = indice_min_amdf + f0_min
+
+tau = pitch*nfft/fc
+s2 = [ threshold+zeros(length(f2)-length(abs(buffer_thresholded(1:end-tau))), 1); abs(buffer_thresholded(1:end-tau))];
+
+%Tracé des spectres superposé à la fréquence min d'AMDF
+f1 = linspace(f0_min,f0_max,length(amdf));
+plot(f1,amdf/200,"color",[0, 0.2, 0.2],"linewidth",2);
+hold on;
+plot(f2,s1,"color",[0, 0, 0.2],"linewidth",2);
+plot(f2,s2,"color",[0, 0.4,0],"linewidth",2);
 xlim([0 fc/2]);
 xlabel('Fréquence (Hz)');
 %xlabel('BufferPadded (s)');
 ylabel('Magnitude');
-title('Spectre des 4 trames avec padding');
+title('AMDF et Spectres superposés ');
