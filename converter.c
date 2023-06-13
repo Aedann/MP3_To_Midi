@@ -21,7 +21,7 @@ int main() {
 
     // Lire les données du fichier d'entrée, effectuer la multiplication et écrire dans le fichier de sortie
     while (fscanf(inputFile, "%lf %lf %lf", &col1, &col2, &col3) == 3) {
-        col2 *= 10000;
+
         int col2Int = (int)col2;
         fprintf(outputFile, "%.0lf\t%d\t%.6lf\n", col1, col2Int, col3);
     }
